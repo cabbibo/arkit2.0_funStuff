@@ -1,0 +1,184 @@
+﻿#pragma kernel CSMain
+#pragma kernel Constraint
+
+
+#include "../Chunks/noise.cginc"
+float _Delta;
+float _Time;
+int _Count;
+int _PassID;
+float _SpringDistance;
+
+float4x4 transform;
+
+float3 _Start;
+float3 _End;
+
+struct Vert{
+  float3 pos;
+  float3 oPos;
+  float3 nor;
+  float3 tangent;
+  float3 bitangent;
+  float idDown;
+  float idUp;
+  float2 uv;
+  float3 debug;
+};
+
+RWStructuredBuffer<Vert> vertBuffer;
+
+float3 getVel( float3 p1 , float3 p2 ){
+
+  float3 v = p1 - p2;
+
+  if( length( v ) > .5){ v = normalize( v ) *.5; }
+  return v;
+  
+}
+
+#define NR_THREADS 64
+
+[numthreads(NR_THREADS,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID, uint3 id : SV_DispatchThreadID) {
+
+  //int pID = id.x + id.y * gridX + id.z * gridX * gridY;
+
+  int pID = threadID + u3GroupID.x * NR_THREADS;
+
+  if( pID < _Count ){
+
+    Vert vert = vertBuffer[pID];
+
+    float3 force = float3( 0 , -1, 0.0 );
+
+    // Inertia: objects in motion stay in motion.
+    float3 vel = getVel( vert.pos , vert.oPos);
+
+    float3 acceleration = force;
+
+    if( length( acceleration ) > 2 ){
+      acceleration = normalize(acceleration) * 2;
+    }
+
+
+    if( vert.idDown > 0 && vert.idUp > 0 ){
+
+      float3 pUp = vertBuffer[int(vert.idUp)].oPos;
+      float3 pDo = vertBuffer[int(vert.idDown)].oPos;
+      float3 pAve = (pUp + pDo)/2;
+      force += (pAve - vert.pos ) * 1000000;
+    } 
+
+    if( _Delta  < .1 ){
+
+      float dampening = .96;//.99999;// - vert.life * .01;
+      float3 next = vert.pos + vel * dampening + acceleration * _Delta * _Delta;
+
+      vert.oPos = vert.pos;
+      vert.pos = next;
+
+    }
+
+    /*if( vert.pos.y < 0 ){
+      vert.pos.y = 0;
+      //vert.oPos.y = 0;
+    }*/
+
+    // If we are at the bottom, 
+    if( vert.idDown < 0 ){ 
+      vert.pos = _Start; 
+      vert.oPos = _Start;
+    }
+
+     // If we are at the bottom, 
+    if( vert.idUp < 0 ){ 
+      vert.pos = _End; 
+      vert.oPos = _End;
+    }
+
+    vertBuffer[pID] = vert;
+
+  }
+  
+}
+
+
+
+
+
+[numthreads(NR_THREADS,1,1)]
+void Constraint(uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID, uint3 id : SV_DispatchThreadID) {
+  
+  // Get the id using thread / group indices
+  uint pID = threadID + u3GroupID.x * NR_THREADS;
+
+  // Since we are doing 2 passes for verlet, multiply by 2 
+  // to get both the vertices!
+  pID = pID * 2;
+  pID = pID + _PassID;
+
+  if( pID < uint(_Count) ){
+    Vert v1 = vertBuffer[pID];
+
+    // If we are are the end of the hair, no need to do verlet
+    if( v1.idUp < 0 ){
+    
+      //vertBuffer[ pID ] = v1;
+    
+    }else{
+
+      if( pID + 1 < uint(_Count)){
+
+        // If we aren't at the end of the hair,
+        // constraint these puppies!
+        Vert v2 = vertBuffer[ pID + 1 ];
+
+        float3 dif = v1.pos - v2.pos;
+        float l = length( dif );
+
+        //float n = noise( v1.pos * 20 );
+
+        float difference = 0;
+        
+        // We want to make sure that l isn't zero, 
+        // or we will get some NaNs
+        if( l > 0 ){
+          difference = ( _SpringDistance - l ) / l;
+        }
+
+        // Here is where the actual verlet goes down!
+        float3 translate = dif * .6 * difference;
+        
+        float3 t1 = 1 * translate;
+        float3 t2 = 1 * translate;
+        
+        float3 n1 = v1.pos + t1;
+        float3 n2 = v2.pos - t2;
+
+        if( v1.idDown >= 0){
+          
+          v1.pos = n1;
+          v2.pos = n2;
+          
+        }else{
+
+          v1.pos = v1.pos;
+          
+          // If its at the base, move it without moving bottom
+          // Because it is attached somewhere
+          v2.pos = n2-t2;
+        
+        }
+
+        // Set both the values in the proper buffer location!
+        vertBuffer[ pID ] = v1;
+        vertBuffer[ pID + 1 ] = v2;
+
+      }
+
+    }
+
+  }
+
+}

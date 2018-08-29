@@ -1,0 +1,226 @@
+﻿
+#pragma kernel CSMain
+
+struct Vert{
+    float3 pos;
+    float3 nor;
+    float3 tan;
+    float2 uv;
+    float debug;
+};
+
+
+struct Curve{
+  float3 pos;
+  float3 oPos;
+  float3 nor;
+  float3 tangent;
+  float3 bitangent;
+  float idDown;
+  float idUp;
+  float2 uv;
+  float3 debug;
+};
+
+
+int _Count;
+int _CurveCount;
+float _ModelLength;
+float3 _Start;
+float3 _End;
+float _StartWidth;
+float _EndWidth;
+
+
+
+
+RWStructuredBuffer<Vert> transferBuffer;
+RWStructuredBuffer<Vert> vertBuffer;
+
+RWStructuredBuffer<Curve> curveBuffer;
+
+
+#include "../Chunks/cubicCurve.cginc"
+
+
+float3 cubicFromValue( in float val , out float3 dir , out float3 nor ){
+
+  Curve c0;
+  Curve c1;
+  Curve c2;
+  Curve cMinus;
+
+  float3 n0 = float3(0,0,0);
+  float3 n1 = float3(0,0,0);
+  float3 v0 = float3( 0. , 0. , 0. );
+  float3 v1 = float3( 0. , 0. , 0. );
+
+
+  float base = val * (float(_CurveCount)-1.);
+  float baseUp   = floor( base );
+  float baseDown = ceil( base );
+  float amount = base - baseUp;
+
+
+  if( baseUp == 0. ){
+
+    c0 = curveBuffer[ int( baseUp )         ];
+    c1 = curveBuffer[ int( baseDown )       ];
+    c2 = curveBuffer[ int( baseDown + 1. )  ];
+
+
+    v1 = .5 * ( c2.pos - c0.pos );
+    n1 = .5 * ( c2.tangent - c0.tangent );
+
+  }else if( baseDown == float(_CurveCount-1) ){
+
+    c0 = curveBuffer[ int( baseUp )       ];
+    c1 = curveBuffer[ int( baseDown )     ];
+    c2 = curveBuffer[ int( baseUp - 1. )  ];
+
+    v0 = .5 * ( c1.pos - c2.pos );
+    n0 = .5 * ( c1.tangent - c2.tangent );
+
+  }else{
+
+    c0 = curveBuffer[ int( baseUp )    ];
+    c1 = curveBuffer[ int( baseDown )  ];
+
+
+    float3 pMinus;
+
+    cMinus = curveBuffer[ int( baseUp - 1. )    ];
+    c2 =     curveBuffer[ int( baseDown + 1. )  ];
+
+    v1 = .5 * ( c2.pos - c0.pos );
+    v0 = .5 * ( c1.pos - cMinus.pos );
+
+    n1 = .5 * ( c2.tangent - c0.tangent );
+    n0 = .5 * ( c1.tangent - cMinus.tangent );
+
+  }
+
+
+  float3 p0 = c0.pos;
+  float3 p1 = c0.pos + v0/3.;
+  float3 p2 = c1.pos - v1/3.;
+  float3 p3 = c1.pos;
+
+  float3 t0 = c0.tangent;
+  float3 t1 = c0.tangent + n0/3.;
+  float3 t2 = c1.tangent - n1/3.;
+  float3 t3 = c1.tangent;
+
+  float3 pos = cubicCurve( amount , p0 , p1 , p2 , p3 );
+  float3 normal = normalize(cubicCurve( amount , t0 , t1 , t2 , t3 ));
+
+  //nor = lerp(t0,t3,amount);//normal;//curveBuffer[ int( baseDown )       ].debug;//normal; //cubicCurve( amount  + .11 , c0 , c1 , c2 , c3 );
+  nor = normal;//curveBuffer[ int( baseDown )       ].debug;//normal; //cubicCurve( amount  + .11 , c0 , c1 , c2 , c3 );
+  dir = normalize(pos -cubicCurve( amount  + .01 , p0 , p1 , p2 , p3 ));
+
+  return pos;
+
+
+}
+
+
+#define NR_THREADS 128
+[numthreads(NR_THREADS,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID) {
+
+  int pID = threadID + u3GroupID.x * NR_THREADS;
+
+  if( pID < _Count ){
+    
+    Vert v = vertBuffer[pID];
+
+    float val = v.pos.z/_ModelLength;
+
+    float3 xDir;
+    float3 yDir;
+    float3 zDir;
+    float3 extraPos;
+    float x; float y; float z;
+
+    
+    float fWidth;
+
+    if( val > 0 && val < 1 ){
+
+      float valAlong = clamp( val ,0,1);
+      float3 nor; float3 dir;
+
+      extraPos = cubicFromValue(valAlong,dir,nor);
+      fWidth = lerp( _StartWidth , _EndWidth , valAlong );
+      
+       // nor = float3(0,0,1);
+    
+      x = v.pos.x;
+      y = v.pos.y;
+      z = 0;
+
+      zDir = normalize(dir);
+      xDir = normalize(nor);
+      yDir = normalize(cross(dir,nor));
+
+
+
+    }else if( val <= 0 ){
+
+      float3 dir =  normalize(curveBuffer[1].pos - curveBuffer[0].pos);
+      float3 oDir = -(_Start - _End);
+
+      xDir = normalize(cross( dir , oDir ));//float3(1,0,0);
+      yDir = -normalize(cross(oDir , xDir ));
+      zDir = normalize(oDir);// -float3(0,0,1);
+
+      x = v.pos.x;
+      y = v.pos.y;
+      z = v.pos.z;
+
+      extraPos = curveBuffer[0].pos;
+      fWidth = _StartWidth;
+
+    }else{
+
+        float3 dir =  normalize(curveBuffer[_CurveCount-1].pos - curveBuffer[_CurveCount-2].pos);
+        float3 oDir = _Start - _End;
+
+
+        xDir = normalize(cross( dir , oDir ));//float3(1,0,0);
+        yDir = normalize(cross(oDir , xDir));
+        zDir = -normalize(oDir);// -float3(0,0,1);
+
+        x = v.pos.x;
+        y = v.pos.y;
+        z = v.pos.z-_ModelLength;
+
+        extraPos = curveBuffer[_CurveCount-1].pos;
+
+        fWidth = _EndWidth;
+
+    }
+
+    float sizeMultiplier = 10*fWidth;
+    float3 fPos = extraPos  +  sizeMultiplier* (x * xDir +y * yDir + z * zDir);
+
+    float3 c1 = float3( xDir.x , yDir.x , zDir.x );
+    float3 c2 = float3( xDir.y , yDir.y , zDir.y );
+    float3 c3 = float3( xDir.z , yDir.z , zDir.z );
+    float3x3 rotMat = float3x3(c1,c2,c3);
+
+
+    //float3 fPos = avePos+mul(rotMat, float3(v.pos.x,v.pos.y,0));
+    float3 fNor = normalize(mul(rotMat,v.nor));
+    float3 fTan = normalize(mul(rotMat,v.tan));
+
+    transferBuffer[pID].pos = fPos;// = v;
+    transferBuffer[pID].nor = fNor;// = v;
+    transferBuffer[pID].tan = fTan;// = v;
+    transferBuffer[pID].uv  = v.uv;// = v;
+    transferBuffer[pID].debug = 1;//val;
+
+
+  }
+
+}

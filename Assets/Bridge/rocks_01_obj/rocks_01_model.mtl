@@ -1,0 +1,17 @@
+# 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
+# File Created: 27.03.2014 17:14:16
+
+newmtl Rocks
+	Ns 10.0000
+	Ni 1.5000
+	d 1.0000
+	Tr 0.0000
+	Tf 1.0000 1.0000 1.0000 
+	illum 2
+	Ka 0.5882 0.5882 0.5882
+	Kd 0.5882 0.5882 0.5882
+	Ks 0.2700 0.2700 0.2700
+	Ke 0.1176 0.1176 0.1176
+	map_Ka D:\Sunnncho\3ds_MAX\80_rocks_01\rocks_01_max_2008\rocks_01_dif.tga
+	map_Kd D:\Sunnncho\3ds_MAX\80_rocks_01\rocks_01_max_2008\rocks_01_dif.tga
+	map_Ks D:\Sunnncho\3ds_MAX\80_rocks_01\rocks_01_max_2008\rocks_01_spec.tga

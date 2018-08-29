@@ -247,7 +247,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &17
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -278,12 +278,12 @@ Light:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 16}
-  m_Enabled: 0
+  m_Enabled: 1
   serializedVersion: 8
   m_Type: 2
   m_Color: {r: 1, g: 0.997495, b: 0.955224, a: 1}
   m_Intensity: 1
-  m_Range: 10
+  m_Range: 2
   m_SpotAngle: 30
   m_CookieSize: 10
   m_Shadows:
@@ -447,12 +447,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a51887019b020469c9e26a295cfee49b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  referenceImage: {fileID: 11400000, guid: d50e93d4bc71d481d87b5b2e48b45e64, type: 2}
+  referenceImage: {fileID: 11400000, guid: 8150d41a2061c4ea39693f139477bfbc, type: 2}
   added: 1
   startingPosition: {x: 0, y: 0, z: 0}
   targetPosition: {x: 0, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 0}
   CenterObject: {fileID: 1163126927}
+  tweenRotation: 1
 --- !u!64 &27224201
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -517,7 +518,7 @@ Transform:
   m_GameObject: {fileID: 27224199}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0.142}
-  m_LocalScale: {x: 0.006, y: 0.006, z: 0.006}
+  m_LocalScale: {x: 0.01016, y: 0.01016, z: 0.01016}
   m_Children:
   - {fileID: 1163126928}
   - {fileID: 20}
@@ -543,7 +544,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &171416771
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -555,12 +556,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a51887019b020469c9e26a295cfee49b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  referenceImage: {fileID: 11400000, guid: d50e93d4bc71d481d87b5b2e48b45e64, type: 2}
+  referenceImage: {fileID: 11400000, guid: 802f7fc5fd379480384963da9ec3181c, type: 2}
   added: 1
   startingPosition: {x: 0, y: 0, z: 0}
   targetPosition: {x: 0, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 0}
   CenterObject: {fileID: 1136973641}
+  tweenRotation: 0
 --- !u!64 &171416772
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -764,9 +766,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3de1529842c343d8aa63c649d8ce1b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  title: Other Selector
+  title: Top Of Head
   info: and some other info
   clip: {fileID: 8300000, guid: 1b22aa12edee74144af105d5445de4ad, type: 3}
+  color: {r: 1, g: 0.775567, b: 0.08962262, a: 1}
 --- !u!1001 &504195911
 Prefab:
   m_ObjectHideFlags: 0
@@ -859,6 +862,10 @@ Prefab:
     - target: {fileID: 4583033520213252, guid: 7449bf35c44e8405ebaf90df7ec84ac4, type: 2}
       propertyPath: m_RootOrder
       value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 1348754896852700, guid: 7449bf35c44e8405ebaf90df7ec84ac4, type: 2}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7449bf35c44e8405ebaf90df7ec84ac4, type: 2}
@@ -969,6 +976,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseObject: {fileID: 1265819691}
   selector: {fileID: 27224200}
+  light: {fileID: 29}
   audioPlayer: {fileID: 816430737}
   spheres:
   - {fileID: 487689915}
@@ -1106,8 +1114,8 @@ MonoBehaviour:
   enableLightEstimation: 1
   enableAutoFocus: 1
   environmentTexturing: 0
-  detectionImages: {fileID: 11400000, guid: bb3112f014ae141a2a6f27005b7598d9, type: 2}
-  maximumNumberOfTrackedImages: 2
+  detectionImages: {fileID: 11400000, guid: 3c120c0977482415ca5eef2dbf595653, type: 2}
+  maximumNumberOfTrackedImages: 3
   detectionObjects: {fileID: 0}
 --- !u!4 &1121666033
 Transform:
@@ -1434,12 +1442,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a51887019b020469c9e26a295cfee49b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  referenceImage: {fileID: 11400000, guid: deb8ab022a26540f0b5dd033548d4e34, type: 2}
+  referenceImage: {fileID: 11400000, guid: de8a83f6322004a99ab57f0937d185bb, type: 2}
   added: 1
   startingPosition: {x: 0, y: 0, z: 0}
   targetPosition: {x: 0, y: 0, z: 0}
   targetRotation: {x: 0, y: 0, z: 0, w: 0}
   CenterObject: {fileID: 1771630429}
+  tweenRotation: 1
 --- !u!64 &1265819692
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1504,7 +1513,7 @@ Transform:
   m_GameObject: {fileID: 1265819690}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.006, y: 0.006, z: 0.006}
+  m_LocalScale: {x: 0.01016, y: 0.01016, z: 0.01016}
   m_Children:
   - {fileID: 1771630430}
   - {fileID: 934633953}
@@ -1603,7 +1612,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1362259916}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.0307, y: 0.075, z: 0.046}
+  m_LocalPosition: {x: -0.0002, y: 0.0841, z: 0.0351}
   m_LocalScale: {x: 0.01383, y: 0.01383, z: 0.01383}
   m_Children: []
   m_Father: {fileID: 934633953}
@@ -1674,9 +1683,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3de1529842c343d8aa63c649d8ce1b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  title: Title 4
+  title: Nose Bone
   info: I am this info 3
   clip: {fileID: 8300000, guid: b9b9d7130d394ec4997632e7a407a06b, type: 3}
+  color: {r: 1, g: 0, b: 0.37814617, a: 1}
 --- !u!1 &1367242455
 GameObject:
   m_ObjectHideFlags: 0
@@ -2106,7 +2116,9 @@ TextMesh:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1645217109}
-  m_Text: Hello World
+  m_Text: '
+
+'
   m_OffsetZ: 0
   m_CharacterSize: 0.4
   m_LineSpacing: 1
@@ -2350,9 +2362,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3de1529842c343d8aa63c649d8ce1b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  title: Title1
+  title: Back Of Head
   info: I am this info
   clip: {fileID: 8300000, guid: 401a24a323004f549966518487c3364d, type: 3}
+  color: {r: 0, g: 1, b: 0.64402413, a: 1}
 --- !u!1 &1911529217
 GameObject:
   m_ObjectHideFlags: 0

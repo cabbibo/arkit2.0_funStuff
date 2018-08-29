@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.iOS;
+using UnityEngine.UI;
 
 public class GenerateObjectAnchor : MonoBehaviour 
 {
@@ -14,6 +15,8 @@ public class GenerateObjectAnchor : MonoBehaviour
 
 	private GameObject objectAnchorGO;
 
+	public Text text;
+
 	// Use this for initialization
 	void Start () {
 		UnityARSessionNativeInterface.ARObjectAnchorAddedEvent += AddObjectAnchor;
@@ -25,6 +28,7 @@ public class GenerateObjectAnchor : MonoBehaviour
 	void AddObjectAnchor(ARObjectAnchor arObjectAnchor)
 	{
 		Debug.Log ("object anchor added");
+			text.text = "added";
 		if (arObjectAnchor.referenceObjectName == referenceObjectAsset.objectName) {
 			Vector3 position = UnityARMatrixOps.GetPosition (arObjectAnchor.transform);
 			Quaternion rotation = UnityARMatrixOps.GetRotation (arObjectAnchor.transform);
@@ -36,6 +40,7 @@ public class GenerateObjectAnchor : MonoBehaviour
 	void UpdateObjectAnchor(ARObjectAnchor arObjectAnchor)
 	{
 		Debug.Log ("object anchor added");
+		text.text = "updated";
 		if (arObjectAnchor.referenceObjectName == referenceObjectAsset.objectName) {
 			objectAnchorGO.transform.position = UnityARMatrixOps.GetPosition (arObjectAnchor.transform);
 			objectAnchorGO.transform.rotation = UnityARMatrixOps.GetRotation (arObjectAnchor.transform);
@@ -46,6 +51,7 @@ public class GenerateObjectAnchor : MonoBehaviour
 	void RemoveObjectAnchor(ARImageAnchor arImageAnchor)
 	{
 		Debug.Log ("object anchor removed");
+			text.text = "removed";
 		if (objectAnchorGO) {
 			GameObject.Destroy (objectAnchorGO);
 		}

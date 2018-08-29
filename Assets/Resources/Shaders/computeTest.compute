@@ -1,0 +1,207 @@
+﻿#pragma kernel CSMain
+  
+
+
+
+struct Vert{
+  float used;
+  float3 pos;
+  float3 debug;
+};
+
+
+
+RWStructuredBuffer<Vert> vertBuffer;
+RWStructuredBuffer<float> outBuffer;
+
+
+#include "Chunks/hash.cginc"
+
+#define NR_THREADS 16
+
+
+// Using groupshared memory to be able to
+// add values together ! 
+
+// want to use about 1-2k per 64 threads
+/*groupshared float4 accumVal[NR_THREADS];
+
+groupshared float4 interlockedFullValue;
+
+void resetValue(int threadid){
+  
+  GroupMemoryBarrierWithGroupSync();
+ 
+  // Only one thread needs to intialize
+  if(threadid==0){
+    interlockedFullValue = float4(0,0,0,0);
+  }
+
+  GroupMemoryBarrierWithGroupSync();
+
+}
+
+
+void interlockedAddFloat4(float4 value , int threadid  )
+{
+  accumVal[threadid] = value;
+  
+  // accumulate a bit in parralel
+  GroupMemoryBarrierWithGroupSync();
+  if((threadid&0x3)==0){
+    accumVal[threadid+0] += (accumVal[threadid+1] + accumVal[threadid+2] + accumVal[threadid+3]);
+  }
+  GroupMemoryBarrierWithGroupSync();
+  if(threadid==0){
+    float4 result = accumVal[0];
+    for(int i=4; i<NR_THREADS; i+=0x4)  { result += accumVal[i]; }
+    interlockedFullValue += result;
+  } 
+  GroupMemoryBarrierWithGroupSync();
+  
+}*/
+
+
+
+groupshared float accumVal[NR_THREADS];
+groupshared float interlockedFullValue;
+
+void interlockedAddFloat(float value , int threadid  )
+{
+
+  accumVal[threadid] = value;
+  //interlockedFullValue = 0;
+  
+  // accumulate a bit in parralel
+  GroupMemoryBarrierWithGroupSync();
+
+  
+  
+  
+
+  int r = threadid % 4;
+  r = threadid - (4 * int(threadid/4));
+
+  if(r==0){
+    accumVal[threadid] += accumVal[threadid+1] + accumVal[threadid+2] + accumVal[threadid+3];
+  }
+
+
+
+  GroupMemoryBarrierWithGroupSync();
+  
+  if(threadid==0){
+    
+    float result = accumVal[0];
+    
+    for( int i=4; i < NR_THREADS; i+=4){ 
+      result += accumVal[i]; 
+    }
+
+    interlockedFullValue += result;
+  
+  } 
+  
+  GroupMemoryBarrierWithGroupSync();
+  
+}
+
+void resetValue(int threadid){
+  
+  GroupMemoryBarrierWithGroupSync();
+ 
+  // Only one thread needs to intialize
+  //if(threadid==0){
+  interlockedFullValue = 0;
+  //}
+
+  GroupMemoryBarrierWithGroupSync();
+
+}
+
+/*
+
+void interlockedClosestLength(float2 value , int threadid ){
+
+  accumVal[threadid].xy = value;
+
+  // accumulate a bit in parralel
+  GroupMemoryBarrierWithGroupSync();
+  
+  if((threadid&0x3)==0){
+
+    float2 fVal = float2(9941,10000);
+
+    for( int i = 0; i < 4; i++){
+      float2 v = accumVal[threadid + i ].xy;
+      if( v.x < fVal.x ){
+        fVal = v;
+      }
+    }
+
+    accumVal[threadid+0].xy = fVal;
+
+  }
+  GroupMemoryBarrierWithGroupSync();
+  
+  if(threadid==0){
+  
+    float2 result = accumVal[0].xy;
+  
+    for(int i=4; i<NR_THREADS; i+=4){ 
+
+      if( accumVal[i].x != 0 ){
+        if( accumVal[i].x < result.x ){
+          result = accumVal[i].xy;
+        } 
+      }
+    }
+
+    interlockedFullValue.xy = result;
+  
+  } 
+  
+  GroupMemoryBarrierWithGroupSync();
+  
+}*/
+
+
+
+
+
+[numthreads(NR_THREADS,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID) {
+  
+
+  int pID = threadID + u3GroupID.x * NR_THREADS;
+  
+  Vert vert = vertBuffer[pID];
+
+  
+  resetValue(threadID);
+    
+    
+
+
+  //interlockedClosestLength(closestVert, threadID);
+
+  interlockedAddFloat( 1 , threadID );
+
+
+
+  //InterlockedADD( 10 , threadID );
+
+  if (threadID == 0) {
+    //float ifv = interlockedFullValue;
+   // ifv = float4( 1 , 2 , 3, 4 );
+    outBuffer[u3GroupID.x] = interlockedFullValue;
+  }
+ 
+
+
+  vertBuffer[pID] = vert;
+
+  
+
+
+}

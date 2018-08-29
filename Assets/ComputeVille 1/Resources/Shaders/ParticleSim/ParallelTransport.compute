@@ -1,0 +1,117 @@
+﻿#pragma kernel CSMain
+
+int _Count;
+
+float3 _Start;
+float3 _End;
+
+struct Vert{
+  float3 pos;
+  float3 oPos;
+  float3 nor;
+  float3 tangent;
+  float3 bitangent;
+  float idDown;
+  float idUp;
+  float2 uv;
+  float3 debug;
+};
+
+RWStructuredBuffer<Vert> vertBuffer;
+
+float3 p(int id){
+  return vertBuffer[id].pos;
+}
+
+void setV( float3 v , int id){
+  vertBuffer[id].tangent = v;
+}
+
+float3 getV( int id){
+  return vertBuffer[id].tangent;
+}
+
+
+void setT( float3 v , int id){
+  vertBuffer[id].bitangent = v;
+}
+
+float3 getT( int id){
+  return vertBuffer[id].bitangent;
+}
+
+
+
+
+float4x4 rotationMatrix(float3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return float4x4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,0.0,
+                0.0,0.0,0,1);
+
+    /*return float4x4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+*/
+
+}
+
+[numthreads(1,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID, uint3 id : SV_DispatchThreadID) {
+
+
+ float3 t;
+ float3 b;
+ float3 n;
+
+
+float3 t0 = normalize(p(1) - p(0));
+float3 t0_0 = normalize(p(2) - p(1));
+float3 v0 = -normalize( cross(t0 ,_Start-_End ));
+
+//v0 = normalize( cross(v0 , t0));
+setV(v0,0);
+setT(t0,0);
+
+
+ 
+  for( int i =0; i < _Count-1; i++ ){
+
+    float3 t1 = normalize(p(i+1) - p(i));
+    float3 t2 = normalize(p(i+2) - p(i+1));
+
+    setT(t1,i);
+
+    b = cross(t1,t2);
+
+    if( length(b)==0){
+        float3 nV = getV(i);
+        setV(nV,i+1);
+    }else{
+
+
+      b=normalize(b);
+      float r = acos(dot(t1,t2));
+      float3 nV = normalize(normalize(mul( rotationMatrix(normalize(b),r) , float4(getV(i),0)).xyz));
+      setV( nV , i+1);
+      //setV( normalize(cross( normalize(cross(nV,b)) , t1 )) , i+1);
+      //setV( normalize(cross( normalize(cross(nV,b)) , t1 )) , i+1);
+
+    }
+
+  }
+
+   //setT(getT(_Count-2),_Count-1);
+   //setV(getV(_Count-2), _Count-1);
+
+  
+  
+}
+

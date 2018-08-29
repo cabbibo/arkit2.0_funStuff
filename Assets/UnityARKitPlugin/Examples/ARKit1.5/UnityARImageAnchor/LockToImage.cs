@@ -15,6 +15,7 @@ public class LockToImage : MonoBehaviour {
   public Vector3 targetPosition;
   public Quaternion targetRotation;
   public GameObject CenterObject;
+  public bool tweenRotation;
 
   // Use this for initialization
   void Start () {
@@ -66,7 +67,9 @@ public class LockToImage : MonoBehaviour {
   // Update is called once per frame
   void FixedUpdate () {
 
-    transform.position = Vector3.Lerp( transform.position , targetPosition , .1f );
-    transform.rotation = Quaternion.Slerp( transform.rotation , targetRotation , .1f );
+    if( added == true ){
+      transform.position = targetPosition;//Vector3.Lerp( transform.position , targetPosition , .1f );
+      if( tweenRotation ){ transform.rotation = targetRotation;};//Quaternion.Slerp( transform.rotation , targetRotation , .1f );
+    }
   }
 }

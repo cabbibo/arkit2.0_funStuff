@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c37f7746917f4760aa00e7ff7fd81dc, type: 3}
+  m_Name: ARReferenceImagesSet
+  m_EditorClassIdentifier: 
+  resourceGroupName: ABC
+  referenceImages:
+  - {fileID: 11400000, guid: de8a83f6322004a99ab57f0937d185bb, type: 2}
+  - {fileID: 11400000, guid: 8150d41a2061c4ea39693f139477bfbc, type: 2}
+  - {fileID: 11400000, guid: 802f7fc5fd379480384963da9ec3181c, type: 2}

@@ -1,0 +1,147 @@
+﻿#pragma kernel CSMain
+
+
+float _DeltaTime;
+float _Time;
+int _Reset;
+float _SpringDistance;
+int _VertsPerHair;
+int _HumanLength;
+
+
+float3 _CamPos;
+
+#include "Chunks/noise.cginc"
+
+struct Base{
+  float used;
+  float3 pos;
+  float3 debug;
+};
+
+struct Hair{
+  float used;
+  float cloudID;
+  float3 pos;
+  float3 oPos;
+  float3 nor;
+  float2 uv;
+  float3 debug;
+};
+
+#include "Chunks/humanStruct.cginc"
+
+float4x4 transform;
+
+RWStructuredBuffer<Hair> hairBuffer;
+RWStructuredBuffer<Base> baseBuffer;
+
+
+float3 getVel( float3 p1 , float3 p2 ){
+
+  float3 v = p1 - p2;
+
+  if( length( v ) > .5){ v = normalize( v ) *.5; }
+  return v;
+  
+}
+
+
+#define NR_THREADS 128
+
+
+[numthreads(NR_THREADS,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID, uint3 id : SV_DispatchThreadID) {
+  
+
+  //int pID = id.x + id.y * gridX + id.z * gridX * gridY;
+
+  int pID = threadID + u3GroupID * NR_THREADS;
+
+  Hair vert = hairBuffer[ pID ];
+
+
+  // Placing the vert in the proper place on the triangle!
+
+  Base base = baseBuffer[(int)vert.cloudID];
+
+
+  float3 dif = vert.nor * _SpringDistance * _VertsPerHair;
+
+  if( _Reset == 1 ){
+
+    // just place back at the beginning if resetting!
+    vert.oPos = base.pos +  dif * vert.uv.y;// vert.ogPos;
+    vert.pos  = base.pos +  dif * vert.uv.y;//vert.ogPos;
+
+
+  }else{
+
+
+
+    
+
+    float3 force = float3( 0 , 0 , 0 );
+
+
+    float bendiness = 0;
+
+    /*
+      Except for the very base vert,
+      we are going to add a slight force outwards
+      using the normal!
+    */
+    if( vert.uv.y >0){
+
+      force += vert.nor * .8;
+
+    }
+
+
+    float3 dif = vert.pos - _CamPos;
+    
+    if( length( dif ) < .2 ){
+      force += normalize( dif );
+    }
+
+
+  
+    // Inertia: objects in motion stay in motion.
+    float3 vel = getVel( vert.pos , vert.oPos);
+
+    float3 acceleration = force;
+
+    float dampening = .99;//.99999;// - vert.life * .01;
+    float3 next = vert.pos + vel * dampening + acceleration * _DeltaTime * _DeltaTime;
+
+    vert.oPos = vert.pos;
+    vert.pos = next;
+
+
+    //vert.vel = vel;
+
+    // If we are at the bottom, 
+    if( vert.uv.y == 0 ){ 
+      vert.pos = base.pos; 
+      vert.oPos = base.pos;
+    }
+
+    if( vert.used != base.used ){
+
+      float3 random = float3( sin( vert.uv.y * 1000. + vert.uv.x * 1000. ) , sin( vert.uv.y * 3115.+ vert.uv.x * 1000. ) , sin( vert.uv.y *14151.+ vert.uv.x * 1000.) );
+
+      random *= .05;
+
+      vert.oPos = base.pos +  dif * vert.uv.y * .01 + random;// vert.ogPos;
+      vert.pos  = base.pos +  dif * vert.uv.y* .01+ random;//vert.ogPos;
+    }
+  
+    vert.used = base.used;
+    
+
+  }
+
+
+  hairBuffer[pID] = vert;
+  
+}

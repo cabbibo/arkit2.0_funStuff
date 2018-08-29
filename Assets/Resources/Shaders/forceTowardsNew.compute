@@ -1,0 +1,265 @@
+﻿#pragma kernel CSMain
+  
+struct Vert{
+  float used;
+  float justChanged;
+  float3 pos;
+  float3 vel;
+  float3 target;
+  float3 oPos[8];
+  float3 debug;
+};
+
+
+struct Point{
+  float used;
+  float3 pos;
+  float3 debug;
+};
+
+struct Rod{
+  float used;
+  float3 startPos;
+  float3 endPos;
+  float4x4 mat;
+  float3 debug;
+};
+
+
+float _DeltaTime;
+float _Time;
+float3 _Target;
+float3 _CameraPos;
+
+float _NumVerts;
+float _NumCloudPoints;
+
+int _MaxRods;
+
+
+struct f4{
+ float4 p;
+};
+
+
+RWStructuredBuffer<Vert> vertBuffer;
+RWStructuredBuffer<Point> cloudBuffer;
+RWStructuredBuffer<Rod> rodBuffer;
+RWStructuredBuffer<float4> outBuffer;
+
+
+#include "Chunks/hash.cginc"
+
+#define NR_THREADS 64
+
+#include "Chunks/interlockedAddFunctions.cginc"
+
+
+
+// iR = innerRadius;
+// oR = outerRadius;
+// rS = radiusScale;
+// rO = radiusOsscilation;
+// sp = startPoint;
+// ep = endPoint;
+float3 GetRodForce( float rodID, float iR, float oR, float rS , float rO, float3 pos, float3 sp, float3 ep ){
+
+  float3 force = float3(0,0,0);
+  
+  float3  lineDir = normalize( sp - ep );
+
+  float3 linePos = sp;
+  
+  float dot1 = dot( pos-linePos , lineDir );
+  float dot2 = dot( lineDir , lineDir );
+
+  // project position onto line to see if within bounds;
+  float3 proj =  lineDir * ( dot1 / dot2 );
+
+  float dotProj = dot( proj , ( ep - sp ) );
+  if( dotProj > 0. && length( proj ) < length( sp - ep ) ){
+
+    float3 lineToPoint = pos-linePos - proj;
+
+    float lineDist = length( lineToPoint );
+    float3 lineTangent = cross( normalize(lineToPoint) , lineDir );
+
+    // getting position along line:
+    float l =  length( proj ) / length( sp - ep );
+
+    float rDif = (oR - iR );
+    float oss = l * rS + _Time * rO;
+    float radius = rDif * abs( sin( oss ) ) + iR;
+    
+
+    if( lineDist < .1 ){
+
+      force += normalize( lineTangent - .3 * normalize(lineToPoint) );
+          
+
+    }else{
+
+      //force += normalize(lineTangent) * .3;
+    
+      //force -= lineToPoint * 1.1;
+
+    }
+
+  }
+
+
+
+  return force;
+
+}
+  
+
+
+[numthreads(NR_THREADS,1,1)]
+void CSMain (uint threadID : SV_GroupIndex, uint3 u3GroupID : SV_GroupID) {
+  
+ 
+  
+
+  int pID = threadID + u3GroupID.x * NR_THREADS;
+  
+  Vert vert = vertBuffer[pID];
+
+  float h = .5 * (sin( float(pID) * 1961.52 ) + 1);
+  
+  int cID = int( float(1024) * h );
+
+  Point p = cloudBuffer[cID];
+
+
+    float3 dir = vert.pos - _Target;
+    float difL = length( dir );
+    float2 closestVert = float2(difL, pID );
+  
+    resetValue(threadID);
+    
+  
+
+    
+    interlockedClosestLength(closestVert, threadID);
+
+    //interlockedAddFloat( 1 , threadID );
+
+    //InterlockedADD( 10 , threadID );
+
+    if (threadID == 0) {
+      float4 ifv = interlockedFullValue;
+     // ifv = float4( 1 , 2 , 3, 4 );
+      outBuffer[u3GroupID.x] = ifv;
+    }
+   
+  
+    
+  vert.debug = vert.pos - _Target;
+
+
+
+//vert.used = 1;
+// if( vert.used == 1 ){
+
+
+  float3 force = float3( 0,0,0);
+
+
+  /*if( difL > 0 ){
+    force -= .004 * normalize(dir) / (difL+.1);
+
+
+    if( difL < .05){ 
+
+      float3 curl = cross( normalize( dir ) , float3(0,1,0));
+      force += .1 * normalize(curl) + normalize(dir) * .0001; 
+
+    }
+  }*/
+
+  if( vert.used != p.used ){
+    vert.used = p.used;
+    vert.pos = _CameraPos;
+    for( int i = 0; i < 8; i++ ){
+      vert.oPos[i] = vert.pos;
+    }
+  }
+
+  if( vert.target.x != p.pos.x ){ 
+    vert.target = p.pos;
+    vert.justChanged = 1;
+    force += float3( 0,.1,0);
+  }
+
+
+  if( length( vert.pos - vert.target ) < .01  ){
+    vert.justChanged = 0;
+  }
+
+
+
+  if( vert.justChanged == 1 ){
+    force += -.3 * (vert.pos - vert.target);
+  }else{
+    //force += .01 * float3( 0 , 1, 0);
+  }
+
+  float3 randForce = float3( sin( float(pID)*12414.14) ,sin( float(pID)*5614.14),sin( float(pID)*9524.14) );
+  force += randForce * .004;
+
+  for( int i = 0; i < _MaxRods; i++ ){
+    Rod r = rodBuffer[i];
+
+    if( r.used == 1 ){
+      float3 rForce = GetRodForce( i , .1 , .5 , 0 , 0 , vert.pos , r.startPos, r.endPos );
+      force += .03 * rForce;
+
+      force += .006*(normalize(r.startPos - vert.pos ));
+      force += .006*(normalize(r.endPos - vert.pos ));
+    }
+  }
+
+  float3 camDir = (vert.pos - _CameraPos);
+
+  if( length( camDir ) < .2 && length( camDir ) > 0 ){
+    force += normalize( camDir ) * 3.1 * ( .2 - length( camDir ));
+  }
+
+
+  float m = sin( float(pID) * 15921.141 ) + 3;
+  vert.vel += (3 * force / m)  * _DeltaTime ;   
+  if( length( vert.vel) > 1 ){ vert.vel = normalize( vert.vel ) * 1;}
+  vert.pos += vert.vel;
+
+  vert.vel *= .9;
+
+
+  //saving out positions
+  vert.oPos[0] = vert.pos;
+  for( int i = 7; i > 0; i-- ){
+
+    vert.oPos[ i ] = vert.oPos[i-1];
+
+  }
+ 
+
+
+    
+  
+      
+
+   // }
+
+
+    
+
+    //vert.debug.z = 1;
+
+
+  vertBuffer[pID] = vert;
+
+  
+
+
+}
